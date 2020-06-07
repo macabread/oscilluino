@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" android:versionCode="1" android:versionName="1.0" package="processing.test.oscilloscope2">
+    <uses-sdk android:minSdkVersion="17" android:targetSdkVersion="28"/>
+    <uses-feature android:name="android.hardware.usb.host"/>android:targetSdkVersion="28"/&gt;<application android:icon="@mipmap/ic_launcher" android:label="oscilloscope2">
+        <activity android:name=".MainActivity" android:theme="@style/Theme.AppCompat.Light.NoActionBar.FullScreen">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+                <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"/>
+            </intent-filter>
+            <meta-data android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" android:resource="@xml/device_filter"/>
+        </activity>
+    </application>
+</manifest>
