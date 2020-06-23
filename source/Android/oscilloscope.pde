@@ -26,6 +26,52 @@ boolean connected, devicefound;
 String[] list;
 String serialPort;
 
+// Кнопки для настройки
+int bh = 90;
+int bw = 125;
+int gap = 10;
+
+Button sizePButton = new Button("+", 10, gap, bw, bh);
+Button sizeMButton = new Button("-", 10, gap*2+bh, bw, bh);
+Button synchButton = new Button("SYNCH", 10, gap*3+bh*2, bw, bh);
+Button stopButton = new Button("STOP", 10, gap*4+bh*3, bw, bh);
+Button freqButton = new Button("FREQ", 10, gap*5+bh*4, bw, bh);
+Button rightButton = new Button("->", 10, gap*6+bh*5, bw, bh);
+Button leftButton = new Button("<-", 10, gap*7+bh*6, bw, bh);
+
+class Button {
+  String label;
+  float x;    // X верхнего левого угла
+  float y;    // Y верхнего левого угла
+  float w;    // Ширина кнопки
+  float h;    // Высота кнопки
+  
+  Button(String labelB, float xpos, float ypos, float widthB, float heightB) {
+    label = labelB;
+    x = xpos;
+    y = ypos;
+    w = widthB;
+    h = heightB;
+  }
+  
+  void drawButton() {
+    fill(218);
+    stroke(141);
+    rect(x, y, w, h, 10);
+    //textSize(32);
+    textAlign(CENTER, CENTER);
+    fill(0);
+    text(label, x + (w / 2), y + (h / 2));
+  }
+  
+  boolean mouseIsOver() {
+    if (mouseX > x && mouseX < (x + w) && mouseY > y && mouseY < (y + h)) {
+      return true;
+    }
+    return false;
+  }
+}
+
 void settings() {
   size(1366, 768);
 }
@@ -43,7 +89,10 @@ void draw() {
   if (!connected && list.length > 0) { //Устройство найдено
     devicefound = true;
     background(0, 0, 0);
-    text("ARDUINO OSCILLOSCOPE\n\nНажмите любую клавишу", 25, 25);
+    text("ARDUINO OSCILLOSCOPE", 25, 25);
+    serial = new Serial(this, Serial.list(this)[0], serialBaudRate);
+    serial.write((byte)prescaler);
+    connected=true;
   }
   else if (connected){ //Устройство подключено
     background(240, 240, 240);
@@ -52,6 +101,14 @@ void draw() {
     drawInterfaceParts();
     drawSignal();
     thread("dataManaging");
+    
+    sizePButton.drawButton();
+    sizeMButton.drawButton();
+    synchButton.drawButton();
+    stopButton.drawButton();
+    freqButton.drawButton();
+    rightButton.drawButton();
+    leftButton.drawButton();
   }
   else { //Устройство не найдено
     devicefound = false;
@@ -71,12 +128,12 @@ void drawInterfaceParts(){ //Отображение сетки и данных
     text(nf(voltageRange/10*n, 2, 2)+"V", windowX+windowWidth+5, windowY+windowHeight-(n*windowHeight/10));
 
   // Вывод интерфейса и статистики
-  text("[F1-F2] МАСШ | [F3] СИНХР: "+sync+" | [F4] СТОП: "+hold+" | [F7-F8] ЧАСТОТА: "+nf((pow(2, prescaler)), 1, 0)+" | [<--->] СДВИГ", 25, 25);
+  text("СИНХР: "+sync+" | СТОП: "+hold+" | ЧАСТОТА: "+nf((pow(2, prescaler)), 1, 0), 500, 25);
   text("Частота сигнала: "+nf(frequency, 5, 2)+"Гц"
    +" | Среднее напряжение: "+nf(trigLevel/1024*voltageRange, 2, 2)+"V"
    +" | Частота выборки: "+nf(sps, 5, 2)+"Гц"
    +" | Масштаб: "+samplesPerLine+" семплов на деление"
-   +" | Длина деления: "+lineTime+"мс", 25, height-10);
+   +" | Длина деления: "+lineTime+"мс", 500, height-10);
 
   // Вывод значений времени
   int lineNumber = 0;
@@ -159,49 +216,38 @@ void dataManaging(){ //Работа с входящими данными
   }
 }
 
-
-
 // Управление
-void keyPressed() {  
+void mousePressed() {  
     if (connected) {
-      if (keyCode == KeyEvent.VK_F1) {
+      if (sizePButton.mouseIsOver()) {
         samplesPerLine *= 1.1;
         if (samplesPerLine*windowWidth > bufferSize) samplesPerLine = bufferSize/windowWidth;
       }
-      if (keyCode == KeyEvent.VK_F2) {
+      if (sizeMButton.mouseIsOver()) {
         samplesPerLine /= 1.1;
         if (samplesPerLine < 1/(float)windowWidth) samplesPerLine = 1/(float)windowWidth;
       }
-      if (keyCode == KeyEvent.VK_F3) {
+      if (synchButton.mouseIsOver()) {
         sync = !sync;
       }
-      if (keyCode == KeyEvent.VK_F4) {
+      if (stopButton.mouseIsOver()) {
         hold = !hold;
       }
-      if (keyCode == KeyEvent.VK_F5) {
-        if (trigLevelLPF < .01) trigLevelLPF *= 10;
-      }
-      if (keyCode == KeyEvent.VK_F6) {
-        if (trigLevelLPF > .000001) trigLevelLPF /= 10;
-      }
-      if (keyCode == KeyEvent.VK_F7) {
-        if (prescaler > 0) prescaler--;
+      if (freqButton.mouseIsOver()) {
+        if (prescaler > 2) prescaler--;
+        else prescaler = 7;
         serial.write((byte)prescaler);
       }
-      if (keyCode == KeyEvent.VK_F8) {
-        if (prescaler < 7) prescaler++;
-        serial.write((byte)prescaler);
-      }
-      if (keyCode == LEFT) {
+      if (leftButton.mouseIsOver()) {
         offset -= samplesPerLine*20;
         if (offset<-bufferSize) offset = -bufferSize;
       }
-      if (keyCode == RIGHT) {
+      if (rightButton.mouseIsOver()) {
         offset += samplesPerLine*20;
         if (offset > 0) offset = 0;
       }
     } else if (devicefound) {
-      serial = new Serial(this, Serial.list()[0], serialBaudRate);
+      serial = new Serial(this, Serial.list(this)[0], serialBaudRate);
       serial.write((byte)prescaler);
       connected=true;
     }
